@@ -1,6 +1,9 @@
 use crate::loading::TextureAssets;
 use crate::GameState;
 use bevy::prelude::*;
+use bevy_simple_text_input::{
+    TextInputBundle, TextInputPlugin, TextInputSubmitEvent, TextInputValue,
+};
 
 pub struct MenuPlugin;
 
@@ -9,84 +12,38 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Menu), setup_menu)
-            .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
+            .add_systems(
+                Update,
+                (button_system, button_style_system).run_if(in_state(GameState::Menu)),
+            )
+            .add_plugins(TextInputPlugin)
             .add_systems(OnExit(GameState::Menu), cleanup_menu);
     }
 }
 
-#[derive(Component)]
-struct ButtonColors {
-    normal: Color,
-    hovered: Color,
-}
-
-impl Default for ButtonColors {
-    fn default() -> Self {
-        ButtonColors {
-            normal: Color::rgb(0.15, 0.15, 0.15),
-            hovered: Color::rgb(0.25, 0.25, 0.25),
-        }
-    }
-}
+const BACKGROUND_DIM: Color = Color::rgb(0.2, 0.2, 0.2);
+const BACKGROUND: Color = Color::rgb(0.0, 0.0, 0.0);
+const FOREGROUND_DIM: Color = Color::rgb(0.5, 0.5, 0.5);
+const FOREGROUND: Color = Color::rgb(0.9, 0.9, 0.9);
 
 #[derive(Component)]
 struct Menu;
 
+#[derive(Component)]
+struct JoinButton;
+
 fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
     info!("menu");
     commands.spawn(Camera2dBundle::default());
+
     commands
         .spawn((
             NodeBundle {
                 style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
                     flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                },
-                ..default()
-            },
-            Menu,
-        ))
-        .with_children(|children| {
-            let button_colors = ButtonColors::default();
-            children
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(140.0),
-                            height: Val::Px(50.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..Default::default()
-                        },
-                        background_color: button_colors.normal.into(),
-                        ..Default::default()
-                    },
-                    button_colors,
-                    ChangeState(GameState::Playing),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Play",
-                        TextStyle {
-                            font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
-        });
-    commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Row,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::SpaceAround,
-                    bottom: Val::Px(5.),
+                    align_items: AlignItems::Start,
+                    top: Val::Px(8.),
+                    left: Val::Px(8.),
                     width: Val::Percent(100.),
                     position_type: PositionType::Absolute,
                     ..default()
@@ -96,120 +53,140 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
             Menu,
         ))
         .with_children(|children| {
-            children
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(170.0),
-                            height: Val::Px(50.0),
-                            justify_content: JustifyContent::SpaceAround,
-                            align_items: AlignItems::Center,
-                            padding: UiRect::all(Val::Px(5.)),
-                            ..Default::default()
-                        },
-                        background_color: Color::NONE.into(),
-                        ..Default::default()
-                    },
-                    ButtonColors {
-                        normal: Color::NONE,
+            children.spawn(TextBundle::from_section(
+                "PLAY WITH BOXES",
+                TextStyle {
+                    font_size: 256.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                    ..default()
+                },
+            ));
+        });
+
+    commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    row_gap: Val::Px(16.0),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                },
+                ..default()
+            },
+            Menu,
+        ))
+        .with_children(|node| {
+            // address input field
+            node.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Px(300.0),
+                        border: UiRect::all(Val::Px(1.0)),
+                        padding: UiRect::all(Val::Px(4.0)),
                         ..default()
                     },
-                    OpenLink("https://bevyengine.org"),
-                ))
+                    background_color: BACKGROUND.into(),
+                    ..default()
+                },
+                TextInputBundle::default().with_text_style(TextStyle {
+                    font_size: 24.,
+                    color: FOREGROUND,
+                    ..default()
+                }),
+            ));
+
+            // join button
+            node.spawn((
+                ButtonBundle {
+                    style: Style {
+                        margin: UiRect {
+                            bottom: Val::Px(12.0),
+                            ..default()
+                        },
+                        width: Val::Px(300.0),
+                        height: Val::Px(32.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    background_color: BACKGROUND.into(),
+                    ..Default::default()
+                },
+                JoinButton,
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "JOIN",
+                    TextStyle {
+                        font_size: 24.0,
+                        color: FOREGROUND,
+                        ..default()
+                    },
+                ));
+            });
+
+            // host button
+            node.spawn((ButtonBundle {
+                style: Style {
+                    width: Val::Px(300.0),
+                    height: Val::Px(32.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..Default::default()
+                },
+                background_color: BACKGROUND.into(),
+                ..Default::default()
+            },))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_section(
-                        "Made with Bevy",
+                        "HOST",
                         TextStyle {
-                            font_size: 15.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
+                            font_size: 24.0,
+                            color: FOREGROUND,
                             ..default()
                         },
                     ));
-                    parent.spawn(ImageBundle {
-                        image: textures.bevy.clone().into(),
-                        style: Style {
-                            width: Val::Px(32.),
-                            ..default()
-                        },
-                        ..default()
-                    });
-                });
-            children
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(170.0),
-                            height: Val::Px(50.0),
-                            justify_content: JustifyContent::SpaceAround,
-                            align_items: AlignItems::Center,
-                            padding: UiRect::all(Val::Px(5.)),
-                            ..default()
-                        },
-                        background_color: Color::NONE.into(),
-                        ..Default::default()
-                    },
-                    ButtonColors {
-                        normal: Color::NONE,
-                        hovered: Color::rgb(0.25, 0.25, 0.25),
-                    },
-                    OpenLink("https://github.com/NiklasEi/bevy_game_template"),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Open source",
-                        TextStyle {
-                            font_size: 15.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                    parent.spawn(ImageBundle {
-                        image: textures.github.clone().into(),
-                        style: Style {
-                            width: Val::Px(32.),
-                            ..default()
-                        },
-                        ..default()
-                    });
                 });
         });
 }
 
-#[derive(Component)]
-struct ChangeState(GameState);
-
-#[derive(Component)]
-struct OpenLink(&'static str);
-
-fn click_play_button(
+fn button_system(
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<JoinButton>)>,
     mut next_state: ResMut<NextState<GameState>>,
+    text_input_query: Query<&TextInputValue>,
+) {
+    for interaction in &interaction_query {
+        if !matches!(interaction, Interaction::Pressed) {
+            continue;
+        }
+
+        let text_input = text_input_query.single();
+        let current_value = text_input.0.parse::<String>().unwrap_or("".to_string());
+        println!("{current_value}");
+        next_state.set(GameState::Playing);
+    }
+}
+
+fn button_style_system(
     mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &ButtonColors,
-            Option<&ChangeState>,
-            Option<&OpenLink>,
-        ),
+        (&Interaction, &mut BorderColor, &mut BackgroundColor),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, button_colors, change_state, open_link) in &mut interaction_query {
+    for (interaction, mut border_color, mut background_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                if let Some(state) = change_state {
-                    next_state.set(state.0.clone());
-                } else if let Some(link) = open_link {
-                    if let Err(error) = webbrowser::open(link.0) {
-                        warn!("Failed to open link {error:?}");
-                    }
-                }
+                *background_color = BACKGROUND_DIM.into();
             }
             Interaction::Hovered => {
-                *color = button_colors.hovered.into();
+                *background_color = FOREGROUND_DIM.into();
             }
             Interaction::None => {
-                *color = button_colors.normal.into();
+                *background_color = BACKGROUND.into();
             }
         }
     }

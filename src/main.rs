@@ -27,6 +27,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(GamePlugin)
+        .add_plugins(bevy_framepace::FramepacePlugin)
         .add_systems(Startup, set_window_icon)
         .run();
 }
