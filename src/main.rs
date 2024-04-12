@@ -12,7 +12,7 @@ use winit::window::Icon;
 
 fn main() {
     App::new()
-        .insert_resource(Msaa::Off)
+        .insert_resource(Msaa::Sample8)
         .insert_resource(AssetMetaCheck::Never)
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -26,8 +26,8 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(GamePlugin)
         .add_plugins(bevy_framepace::FramepacePlugin)
+        .add_plugins(GamePlugin)
         .add_systems(Startup, set_window_icon)
         .run();
 }

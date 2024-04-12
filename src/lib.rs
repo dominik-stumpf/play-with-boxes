@@ -6,6 +6,8 @@ mod loading;
 mod menu;
 mod player;
 
+use std::time::Duration;
+
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
 use crate::loading::LoadingPlugin;
@@ -24,11 +26,13 @@ use bevy::prelude::*;
 enum GameState {
     // During the loading State the LoadingPlugin will load our assets
     #[default]
-    Loading,
+    AssetLoading,
     // During this State the actual game logic is executed
     Playing,
     // Here the menu is drawn and waiting for player interaction
     Menu,
+    // Looking for a match after menu
+    Matchmaking,
 }
 
 pub struct GamePlugin;
@@ -42,10 +46,15 @@ impl Plugin for GamePlugin {
             InternalAudioPlugin,
             PlayerPlugin,
         ));
-
         #[cfg(debug_assertions)]
         {
-            app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
+            app.add_plugins((
+                FrameTimeDiagnosticsPlugin,
+                LogDiagnosticsPlugin {
+                    wait_duration: Duration::from_secs(5),
+                    ..default()
+                },
+            ));
         }
     }
 }

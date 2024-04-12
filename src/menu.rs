@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_simple_text_input::{
     TextInputBundle, TextInputPlugin, TextInputSubmitEvent, TextInputValue,
 };
+use local_ip_address::local_ip;
 
 pub struct MenuPlugin;
 
@@ -31,6 +32,16 @@ struct Menu;
 
 #[derive(Component)]
 struct JoinButton;
+
+enum MenuAction {
+    Host,
+    Join,
+}
+
+#[derive(Component)]
+struct MenuButton {
+    action: MenuAction,
+}
 
 fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
     info!("menu");
@@ -116,7 +127,9 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
                     background_color: BACKGROUND.into(),
                     ..Default::default()
                 },
-                JoinButton,
+                MenuButton {
+                    action: MenuAction::Join,
+                },
             ))
             .with_children(|parent| {
                 parent.spawn(TextBundle::from_section(
@@ -130,44 +143,58 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
             });
 
             // host button
-            node.spawn((ButtonBundle {
-                style: Style {
-                    width: Val::Px(300.0),
-                    height: Val::Px(32.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
+            node.spawn((
+                ButtonBundle {
+                    style: Style {
+                        width: Val::Px(300.0),
+                        height: Val::Px(32.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..Default::default()
+                    },
+                    background_color: BACKGROUND.into(),
                     ..Default::default()
                 },
-                background_color: BACKGROUND.into(),
-                ..Default::default()
-            },))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "HOST",
-                        TextStyle {
-                            font_size: 24.0,
-                            color: FOREGROUND,
-                            ..default()
-                        },
-                    ));
-                });
+                MenuButton {
+                    action: MenuAction::Host,
+                },
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "HOST",
+                    TextStyle {
+                        font_size: 24.0,
+                        color: FOREGROUND,
+                        ..default()
+                    },
+                ));
+            });
         });
 }
 
 fn button_system(
-    interaction_query: Query<&Interaction, (Changed<Interaction>, With<JoinButton>)>,
+    interaction_query: Query<(&Interaction, &MenuButton), Changed<Interaction>>,
     mut next_state: ResMut<NextState<GameState>>,
     text_input_query: Query<&TextInputValue>,
 ) {
-    for interaction in &interaction_query {
+    for (interaction, menu_button) in &interaction_query {
         if !matches!(interaction, Interaction::Pressed) {
             continue;
         }
 
-        let text_input = text_input_query.single();
-        let current_value = text_input.0.parse::<String>().unwrap_or("".to_string());
-        println!("{current_value}");
-        next_state.set(GameState::Playing);
+        match menu_button.action {
+            MenuAction::Host => {
+                let host_ip = local_ip().unwrap();
+                println!("{host_ip}");
+                next_state.set(GameState::Playing);
+            }
+            MenuAction::Join => {
+                let text_input = text_input_query.single();
+                let current_value = text_input.0.parse::<String>().unwrap_or("".to_string());
+                println!("{current_value}");
+                next_state.set(GameState::Playing);
+            }
+        }
     }
 }
 
