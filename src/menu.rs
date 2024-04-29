@@ -1,5 +1,5 @@
-use crate::loading::TextureAssets;
 use crate::GameState;
+use crate::{loading::TextureAssets, ClientTypeState};
 use bevy::prelude::*;
 use bevy_simple_text_input::{
     TextInputBundle, TextInputPlugin, TextInputSubmitEvent, TextInputValue,
@@ -174,7 +174,8 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
 
 fn button_system(
     interaction_query: Query<(&Interaction, &MenuButton), Changed<Interaction>>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_client_type_state: ResMut<NextState<ClientTypeState>>,
     text_input_query: Query<&TextInputValue>,
 ) {
     for (interaction, menu_button) in &interaction_query {
@@ -186,13 +187,15 @@ fn button_system(
             MenuAction::Host => {
                 let host_ip = local_ip().unwrap();
                 println!("{host_ip}");
-                next_state.set(GameState::Playing);
+                next_game_state.set(GameState::Matchmaking);
+                next_client_type_state.set(ClientTypeState::HostServer { client_id: () });
             }
             MenuAction::Join => {
                 let text_input = text_input_query.single();
                 let current_value = text_input.0.parse::<String>().unwrap_or("".to_string());
                 println!("{current_value}");
-                next_state.set(GameState::Playing);
+                next_game_state.set(GameState::Matchmaking);
+                next_client_type_state.set(ClientTypeState::Client { client_id: () });
             }
         }
     }
